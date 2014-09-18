@@ -89,17 +89,22 @@ add_action( 'save_post', 'bearded_octo_member_only_save_meta_box_data' );
 
 // Remove the ticket selector if the event is set to member only
 function bearded_octo_member_only_remove_ticket_selector() {
-    global $post_type, $post;
-    $value = get_post_meta( $post->ID, '_bearded_octo_member_only', true );
+    $post_type = get_post_type();
+    $value = get_post_meta( get_the_ID(), '_bearded_octo_member_only', true );
     
     if ( ! is_user_logged_in() ) {
-        if ( $post_type == 'espresso_events' && $value == 'yes' ) {
-            add_action( 'AHEE_event_details_before_post', 'bearded_octo_member_only_register_site_first_message' );
-            add_filter( 'FHEE_disable_espresso_ticket_selector', 'bearded_octo_member_only_filter_ticket_selector');
+        if ( $post_type == 'espresso_events' ) {
+            if ( is_singular() && $value == 'yes' ){
+                add_action( 'AHEE_event_details_before_post', 'bearded_octo_member_only_register_site_first_message' );
+                add_filter( 'FHEE_disable_espresso_ticket_selector', 'bearded_octo_member_only_filter_ticket_selector' );
+            }
+            if ( is_archive() ){
+                add_filter ('the_content', 'bearded_octo_member_only_remove_ticket_selector_from_archive', 100 );
+            }
         }
     }
 }
-add_action( 'template_redirect', 'bearded_octo_member_only_remove_ticket_selector' );
+add_action( 'get_template_part_content', 'bearded_octo_member_only_remove_ticket_selector' );
 
 // The message if not a member or not logged in
 function bearded_octo_member_only_register_site_first_message() {
@@ -120,5 +125,14 @@ function bearded_octo_member_only_register_site_first_message() {
 
 function bearded_octo_member_only_filter_ticket_selector() {
     return 'FALSE';
+}
+
+function bearded_octo_member_only_remove_ticket_selector_from_archive( $content ) {
+    $value = get_post_meta( get_the_ID(), '_bearded_octo_member_only', true );
+        if ( $value == 'yes' ) {
+            remove_filter( 'the_content', array( 'EED_Events_Archive', 'event_tickets' ), 120, 1 );
+            remove_filter( 'the_excerpt', array( 'EED_Events_Archive', 'event_tickets' ), 120, 1 );
+        }
+    return $content;
 }
 
